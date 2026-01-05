@@ -4,10 +4,18 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\{Investor, Investment};
+use App\Services\InvestmentService;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
+use Exception;
 
 class InvestorController extends Controller {
+    private InvestmentService $investmentService;
+
+    public function __construct(InvestmentService $investmentService) {
+        $this->investmentService = $investmentService;
+    }
+
     public function import(Request $request) {
         $request->validate(['file' => 'required|file|mimes:csv,txt']);
 
@@ -39,8 +47,9 @@ class InvestorController extends Controller {
                 ]);
 
                 $count++;
-            } catch (\Exception $e) {
-                $errors[] = "Row " . ($count + 1) . ": " . $e->getMessage();
+            } catch (Exception $e) {
+                $errors[] = "Row " . ($count + 1) . ": " .
+                    $e->getMessage();
             }
         }
         fclose($file);
@@ -49,5 +58,34 @@ class InvestorController extends Controller {
             'imported' => $count,
             'errors' => $errors
         ], 200);
+    }
+
+    public function averageAge() {
+        return response()->json([
+            'average_age' => $this->investmentService
+                ->getAverageAge()
+        ]);
+    }
+
+    public function averageInvestmentAmount() {
+        return response()->json([
+            'average_investment_amount' => $this->investmentService
+                ->getAverageInvestmentAmount()
+        ]);
+    }
+
+    public function totalInvestments() {
+        return response()->json([
+            'total_investments' => $this->investmentService
+                ->getTotalInvestments()
+        ]);
+    }
+
+    public function getAllInvestors(Request $request) {
+        $perPage = (int)$request->query('per_page', 50);
+        $investors = $this->investmentService
+            ->getAllInvestors($perPage);
+
+        return response()->json($investors);
     }
 }

@@ -3,61 +3,29 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\{Investor, Investment};
-use App\Services\InvestmentService;
+use App\Services\{CsvImportService, InvestmentService};
 use Illuminate\Http\Request;
-use Carbon\Carbon;
-use Exception;
 
 class InvestorController extends Controller {
+    private CsvImportService $csvImportService;
     private InvestmentService $investmentService;
 
-    public function __construct(InvestmentService $investmentService) {
+    public function __construct(
+        CsvImportService $csvImportService,
+        InvestmentService $investmentService
+    ) {
+        $this->csvImportService = $csvImportService;
         $this->investmentService = $investmentService;
     }
 
     public function import(Request $request) {
         $request->validate(['file' => 'required|file|mimes:csv,txt']);
 
-        $file = fopen($request->file('file')->path(), 'r');
-        $header = fgetcsv($file);
+        $result = $this->csvImportService->import($request->file('file')->path());
 
-        $count = 0;
-        $errors = [];
+        $statusCode = $result['total_errors'] > 0 ? 207 : 200;
 
-        while ($row = fgetcsv($file)) {
-            try {
-                $data = array_combine($header, $row);
-
-                $investor = Investor::firstOrCreate(
-                    ['investor_id' => $data['investor_id']],
-                    ['name' => $data['name'], 'age' => (int)$data['age']]
-                );
-
-                // Parse DD-MM-YYYY format
-                $investmentDate = Carbon::createFromFormat(
-                    'd-m-Y',
-                    $data['investment_date']
-                );
-
-                Investment::create([
-                    'investor_id' => $investor->id,
-                    'amount' => (float)$data['investment_amount'],
-                    'investment_date' => $investmentDate,
-                ]);
-
-                $count++;
-            } catch (Exception $e) {
-                $errors[] = "Row " . ($count + 1) . ": " .
-                    $e->getMessage();
-            }
-        }
-        fclose($file);
-
-        return response()->json([
-            'imported' => $count,
-            'errors' => $errors
-        ], 200);
+        return response()->json($result, $statusCode);
     }
 
     public function averageAge() {

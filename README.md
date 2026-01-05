@@ -1,59 +1,203 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Woven Data Investment Service
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+A Laravel backend service for importing investor data from CSV files and exposing it through RESTful APIs
 
-## About Laravel
+## Quick Start
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+### Prerequisites
+- Docker Desktop installed and running
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+### Installation & Running
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+1. **Clone the repository**
+```bash
+git clone https://github.com/MeioNeiz/woven_backend_task
+cd woven_backend_task
+```
 
-## Learning Laravel
+2. **Copy environment file**
+```bash
+cp .env.example .env
+```
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+3. **Build and start Docker containers**
+```bash
+docker-compose up -d
+```
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+4. **Generate app key**
+```bash
+docker-compose exec app php artisan key:generate
+```
 
-## Laravel Sponsors
+5. **Run migrations**
+```bash
+docker-compose exec app php artisan migrate
+```
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+6. **Verify it's working**
+```bash
+curl http://localhost:8000/api/investors/stats/average-age
+```
 
-### Premium Partners
+---
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+## Architecture
 
-## Contributing
+### Directory Structure
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+app/
+├── Http/
+│   └── Controllers/Api/
+│       └── InvestorController.php      # API endpoints
+├── Services/
+│   ├── CsvImportService.php            # CSV parsing & batch import
+│   └── InvestmentService.php           # Business logic for aggregates
+└── Models/
+├── Investor.php
+└── Investment.php
+database/
+├── migrations/
+│   ├── create_investors_table.php
+│   └── create_investments_table.php
+routes/
+└── api.php                             # All api routes defined
+tests/
+├── Feature/Api/
+│   └── InvestorControllerTest.php      # API endpoint tests
+└── Unit/Services/
+└── CsvImportServiceTest.php        # Service logic tests
 
-## Code of Conduct
+## CSV Format
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+The import endpoint expects a CSV file with the following structure:
 
-## Security Vulnerabilities
+```csv
+investor_id,name,age,investment_amount,investment_date
+1,John Doe,30,5000,2024-01-15
+2,Jan
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+## API Endpoints
 
-## License
+### Import CSV
+**POST** `/api/investors/import`
+- **Body:** `multipart/form-data` with `file` field
+- **Response:**
+```json
+{
+  "imported": 150,
+  "errors": [],
+  "total_errors": 0
+}
+```
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+### Get Average Age
+**GET** `/api/investors/stats/average-age`
+- **Response:**
+```json
+{
+  "average_age": 35
+}
+```
+
+### Get Average Investment Amount
+**GET** `/api/investors/stats/average-investment`
+- **Response:**
+```json
+{
+  "average_investment_amount": 7500
+}
+```
+
+### Get Total Investments
+**GET** `/api/investors/stats/total-investments`
+- **Response:**
+```json
+{
+  "total_investments": 1250
+}
+```
+
+### Get All Investors
+**GET** `/api/investors?per_page=50`
+- **Query Params:** `per_page` (optional, default: 50)
+- **Response:** Paginated JSON with investor details and their investments
+
+## Technical Decisions
+
+### PHP Version
+PHP 8.4 - Latest stable version (8.5 is not production-ready)
+
+### Docker
+Ensures consistent development environment across all systems
+
+### Performance Optimisations
+**Problem:** Original implementation would use `firstOrCreate()` in a loop
+- 10,000 rows = 10,000+ database queries
+- Slow and resource-intensive
+
+**Solution:** Batch `upsert()` and `insert()`
+- 10,000 rows = 3 database queries
+- Critical for handling 10k+ records efficiently
+
+## Running Tests
+
+Run tests with:
+```bash
+docker-compose exec app php artisan test
+```
+
+## Debugging
+
+XDebug is configured in the docker container
+
+## Future improvements
+
+### Testing
+
+- Increase test coverage such as for the InvestmentService.php
+- Add more edge case tests
+- Add test db so we dont just wipe the db every time we run a test :D
+- Add performance tests, we know we may have 10k+ so test it to see how it handles it
+- Can benchmark endpoints 
+
+### Features
+- CSV export endpoint
+- Import history/audit log
+
+### Performance
+
+- Caching for aggregate endpoints
+- Laravel queue for async imports (only required for very large csvs)
+- Database indexing optimisation
+
+### Security
+
+- API token authentication (Laravel Sanctum)
+- Rate limiting on import endpoint
+
+### TODO
+
+- API documentation (Swagger/OpenAPI)
+- Logging
+
+## Assumptions
+
+- No API authentication required
+- One investment per date per investor (as per brief)
+
+## Implementation Status
+
+**Completed:**
+- CSV import endpoint with validation
+- Batch processing for scalability
+- All three aggregate endpoints
+- Get all investors endpoint with pagination
+- Service-oriented architecture
+- Basic unit and feature tests
+- Docker setup
+
+**Not completed:**
+- CSV export functionality
+- Comprehensive test coverage
+- Queue-based import for large csvs

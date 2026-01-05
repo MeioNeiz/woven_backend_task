@@ -95,41 +95,62 @@ class CsvImportService {
     private function createInvestorsAndInvestments(
         array $parsedData
     ): array {
-        $created = 0;
-        $failed = [];
+        $investorData = [];
+        $investmentData = [];
 
+        // Prepare data for batch insert
         foreach ($parsedData['data'] as $item) {
-            try {
-                $investor = Investor::firstOrCreate(
-                    ['investor_id' => $item['investor_id']],
-                    ['name' => $item['name'], 'age' => $item['age']]
-                );
-
-                Investment::create([
-                    'investor_id' => $investor->id,
-                    'amount' => $item['investment_amount'],
-                    'investment_date' =>
-                    $item['investment_date'],
-                ]);
-
-                $created++;
-            } catch (Exception $e) {
-                $failed[] = [
+            // Get unique investors
+            if (!isset($investorData[$item['investor_id']])) {
+                $investorData[$item['investor_id']] = [
                     'investor_id' => $item['investor_id'],
-                    'error' => $e->getMessage()
+                    'name' => $item['name'],
+                    'age' => $item['age'],
+                    'created_at' => now(),
+                    'updated_at' => now(),
                 ];
             }
+
+            // Collect all investments
+            $investmentData[] = [
+                'investor_id' => $item['investor_id'],
+                'amount' => $item['investment_amount'],
+                'investment_date' => $item['investment_date'],
+            ];
         }
 
+        // Batch upsert investors
+        Investor::upsert(
+            array_values($investorData),
+            ['investor_id'],
+            ['name', 'age']
+        );
+
+        // Get investor IDs
+        $investors = Investor::whereIn(
+            'investor_id',
+            array_keys($investorData)
+        )->pluck('id', 'investor_id');
+
+        // Map investments to investor IDs
+        $investmentsToInsert = [];
+        foreach ($investmentData as $inv) {
+            $investmentsToInsert[] = [
+                'investor_id' => $investors[$inv['investor_id']],
+                'amount' => $inv['amount'],
+                'investment_date' => $inv['investment_date'],
+                'created_at' => now(),
+                'updated_at' => now(),
+            ];
+        }
+
+        // Batch insert investments
+        Investment::insert($investmentsToInsert);
+
         return [
-            'imported' => $created,
-            'errors' => array_merge(
-                $parsedData['errors'],
-                $failed
-            ),
-            'total_errors' => count(
-                $parsedData['errors']
-            ) + count($failed)
+            'imported' => count($investmentData),
+            'errors' => $parsedData['errors'],
+            'total_errors' => count($parsedData['errors'])
         ];
     }
 }

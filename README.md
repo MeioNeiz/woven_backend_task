@@ -47,6 +47,7 @@ Result: {"average_age":0}
 
 ### Directory Structure
 
+```
 woven_backend_task/
 ├── app/
 │   ├── Http/Controllers/Api/
@@ -70,6 +71,7 @@ woven_backend_task/
 │       └── CsvImportServiceTest.php
 ├── Dockerfile
 └── docker-compose.yml
+```
 
 ## CSV Format
 

@@ -43,6 +43,16 @@ class CsvImportService {
 
         foreach ($rows as $index => $row) {
             try {
+                if (!is_numeric($row['age'])) {
+                    throw new Exception("Age must be numeric");
+                }
+
+                if (!is_numeric($row['investment_amount'])) {
+                    throw new Exception(
+                        "Investment amount must be numeric"
+                    );
+                }
+
                 $parsed[] = [
                     'investor_id' => trim($row['investor_id']),
                     'name' => trim($row['name']),

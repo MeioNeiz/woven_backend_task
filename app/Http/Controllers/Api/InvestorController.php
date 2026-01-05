@@ -19,7 +19,7 @@ class InvestorController extends Controller {
     }
 
     public function import(Request $request) {
-        $request->validate(['file' => 'required|file|mimes:csv,txt']);
+        $request->validate(['file' => 'required|file|mimes:csv']);
 
         $result = $this->csvImportService->import($request->file('file')->path());
 
@@ -30,15 +30,13 @@ class InvestorController extends Controller {
 
     public function averageAge() {
         return response()->json([
-            'average_age' => $this->investmentService
-                ->getAverageAge()
+            'average_age' => (int) $this->investmentService->getAverageAge()
         ]);
     }
 
     public function averageInvestmentAmount() {
         return response()->json([
-            'average_investment_amount' => $this->investmentService
-                ->getAverageInvestmentAmount()
+            'average_investment_amount' => (int) $this->investmentService->getAverageInvestmentAmount()
         ]);
     }
 

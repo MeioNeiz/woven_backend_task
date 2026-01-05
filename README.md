@@ -40,33 +40,36 @@ docker-compose exec app php artisan migrate
 curl http://localhost:8000/api/investors/stats/average-age
 ```
 
+Result: {"average_age":0}
 ---
 
 ## Architecture
 
 ### Directory Structure
 
-app/
-├── Http/
-│   └── Controllers/Api/
-│       └── InvestorController.php      # API endpoints
-├── Services/
-│   ├── CsvImportService.php            # CSV parsing & batch import
-│   └── InvestmentService.php           # Business logic for aggregates
-└── Models/
-├── Investor.php
-└── Investment.php
-database/
-├── migrations/
-│   ├── create_investors_table.php
-│   └── create_investments_table.php
-routes/
-└── api.php                             # All api routes defined
-tests/
-├── Feature/Api/
-│   └── InvestorControllerTest.php      # API endpoint tests
-└── Unit/Services/
-└── CsvImportServiceTest.php        # Service logic tests
+woven_backend_task/
+├── app/
+│   ├── Http/Controllers/Api/
+│   │   └── InvestorController.php
+│   ├── Services/
+│   │   ├── CsvImportService.php
+│   │   └── InvestmentService.php
+│   └── Models/
+│       ├── Investor.php
+│       └── Investment.php
+├── database/
+│   └── migrations/
+│       ├── create_investors_table.php
+│       └── create_investments_table.php
+├── routes/
+│   └── api.php
+├── tests/
+│   ├── Feature/Api/
+│   │   └── InvestorControllerTest.php
+│   └── Unit/Services/
+│       └── CsvImportServiceTest.php
+├── Dockerfile
+└── docker-compose.yml
 
 ## CSV Format
 
@@ -75,7 +78,8 @@ The import endpoint expects a CSV file with the following structure:
 ```csv
 investor_id,name,age,investment_amount,investment_date
 1,John Doe,30,5000,2024-01-15
-2,Jan
+2,Jane Smith,28,7500,15-01-2024
+```
 
 ## API Endpoints
 
@@ -126,7 +130,7 @@ investor_id,name,age,investment_amount,investment_date
 ## Technical Decisions
 
 ### PHP Version
-PHP 8.4 - Latest stable version (8.5 is not production-ready)
+PHP 8.4 - Second most recent version - hopefully stable
 
 ### Docker
 Ensures consistent development environment across all systems

@@ -43,6 +43,40 @@ curl http://localhost:8000/api/investors/stats/average-age
 Result: {"average_age":0}
 ---
 
+## Troubleshooting
+
+### Port Already Allocated
+If you get: `Bind for 0.0.0.0:3306 failed: port is already allocated`
+
+**Solution:** Another container or service is using port 3306. Either:
+- Stop the conflicting service
+- Or change the port in `docker-compose.yml`:
+```yaml
+services:
+  mysql:
+    ports:
+      - "3307:3306"  # Use 3307 instead
+```
+
+Then reconnect with: `DB_PORT=3307` in your `.env`
+
+---
+
+### Missing Vendor Directory
+If you get: `Failed opening required '/app/vendor/autoload.php'`
+
+**Solution:** Composer dependencies weren't installed during Docker build. Run:
+```bash
+docker-compose exec app composer install
+```
+
+Or rebuild from scratch:
+```bash
+docker-compose down
+docker-compose build --no-cache
+docker-compose up -d
+```
+
 ## Architecture
 
 ### Directory Structure
